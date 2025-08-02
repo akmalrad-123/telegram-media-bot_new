@@ -6,10 +6,8 @@ git pull origin main --rebase
 echo "📦 Adding all changes..."
 git add .
 
-echo "📝 Enter commit message:"
-read message
-
-git commit -m "$message"
+echo "🔒 Committing with auto message..."
+git commit -am "fix: auto deploy" 2>/dev/null || echo "ℹ️ Nothing to commit"
 
 echo "🚀 Pushing to origin/main..."
 git push origin main
