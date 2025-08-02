@@ -1,5 +1,5 @@
 services:
-  - type: worker
+  - type: web           # ✅ Web Service
     name: telegram-media-bot
     env: python
     repo: https://github.com/akmalrad-123/telegram-media-bot_new
