@@ -1,0 +1,6 @@
+API_ID = 22476589
+API_HASH = "97cfc3f9313c7bf03cd69417631d4903"
+BOT_TOKEN = "7659861708:AAGc-IaMSxSSgp--G8FERMwpVq_7UHYSQ-c"
+
+GROUP_ID = -1002637326587  # Sizning guruhingiz ID'si
+QIZIQARLI_TOPIC_ID = 2     # 'qiziqarli videolar' topik ID'si
