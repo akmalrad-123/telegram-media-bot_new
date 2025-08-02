@@ -1,53 +1,62 @@
 import asyncio
-import threading
-import datetime
 from pyrogram import Client, filters
 from pyrogram.types import Message
 from flask import Flask
-import config
+import threading
+from config import API_ID, API_HASH, BOT_TOKEN, GROUP_ID, QIZIQARLI_TOPIC_ID
 
-app = Flask(__name__)
-bot = Client("media_bot",
-    api_id=config.API_ID,
-    api_hash=config.API_HASH,
-    bot_token=config.BOT_TOKEN
+GENERAL_TOPIC_ID = 1  # Bu siz aytgan General topic ID
+
+app = Client(
+    "media_bot",
+    api_id=API_ID,
+    api_hash=API_HASH,
+    bot_token=BOT_TOKEN
 )
 
-cached_messages = []
+flask_app = Flask(__name__)
 
-@app.route("/")
-def index():
-    return "Bot is running."
+@flask_app.route("/")
+def home():
+    return "Bot is alive!"
 
-@bot.on_message(filters.chat(config.GROUP_ID))
-async def handle_messages(client, message: Message):
-    now = datetime.datetime.now().time()
-    is_night = now < datetime.time(7, 0)
+# Faqat user yozgan TEXT, AUDIO, VOICE, VIDEO msg larni Qiziqarli dan Generalga forward
+@app.on_message(filters.chat(GROUP_ID) & filters.topic(QIZIQARLI_TOPIC_ID))
+async def handle_user_text_in_qiziqarli(client, message: Message):
+    if message.forward_from or message.forward_from_chat:
+        return  # Forward qilingan media emas — ignore qilamiz
+    if message.text or message.video or message.audio or message.voice:
+        await client.copy_message(
+            chat_id=GROUP_ID,
+            from_chat_id=message.chat.id,
+            message_id=message.id,
+            message_thread_id=GENERAL_TOPIC_ID
+        )
 
-    if message.chat.type != "supergroup" or message.message_thread_id is None:
-        return
-
-    if message.forward_from or message.forward_sender_name:
-        if message.media:
-            await message.copy(config.GROUP_ID, message_thread_id=config.QIZIQARLI_TOPIC_ID)
-        elif message.text and ("http" in message.text or "youtu" in message.text or "t.me" in message.text):
-            await message.copy(config.GROUP_ID, message_thread_id=config.QIZIQARLI_TOPIC_ID)
-
-    elif message.message_thread_id == config.QIZIQARLI_TOPIC_ID:
-        if is_night:
-            cached_messages.append(message)
-        else:
-            await message.copy(config.GROUP_ID, message_thread_id=0)
+# Faqat tashqi forward qilingan media fayllarni General dan Qiziqarli ga forward
+@app.on_message(filters.chat(GROUP_ID) & filters.topic(GENERAL_TOPIC_ID))
+async def handle_forwarded_media_in_general(client, message: Message):
+    if message.forward_from_chat or message.forward_from:
+        if message.video or message.audio or message.voice or message.photo or message.document:
+            await client.copy_message(
+                chat_id=GROUP_ID,
+                from_chat_id=message.chat.id,
+                message_id=message.id,
+                message_thread_id=QIZIQARLI_TOPIC_ID
+            )
 
 def run_flask():
-    app.run(host="0.0.0.0", port=10000)
+    flask_app.run(host="0.0.0.0", port=10000)
 
-async def start_all():
-    threading.Thread(target=run_flask, daemon=True).start()
-    await bot.start()
-    await idle()
+def run_bot():
+    asyncio.run(main())
+
+async def main():
+    await app.start()
+    print("🤖 Bot started.")
+    while True:
+        await asyncio.sleep(60)
 
 if __name__ == "__main__":
-    from pyrogram.idle import idle
-    asyncio.run(start_all())
-
+    threading.Thread(target=run_flask).start()
+    run_bot()
