@@ -1,52 +1,53 @@
-import asyncio
-import threading
-from datetime import datetime
 from pyrogram import Client, filters
 from pyrogram.types import Message
 from flask import Flask
+import threading
+import datetime
+import config
 
-# 🔁 Configdan import
-from config import API_ID, API_HASH, BOT_TOKEN, GROUP_ID, GENERAL_TOPIC_ID, QIZIQARLI_TOPIC_ID
+app = Flask(__name__)
+bot = Client(
+    "bot",
+    api_id=config.API_ID,
+    api_hash=config.API_HASH,
+    bot_token=config.BOT_TOKEN
+)
 
-# Pyrogram client
-app = Client("my_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+# Message queue for night caching
+cached_messages = []
 
-# Flask web server (Render workaround)
-web_app = Flask(__name__)
+# Flask web route
+@app.route("/")
+def index():
+    return "Bot is running."
 
-@web_app.route('/')
-def home():
-    return "Bot is running (Render Flask workaround)"
+# Bot handler
+@bot.on_message(filters.chat(config.GROUP_ID))
+async def handle_messages(client, message: Message):
+    now = datetime.datetime.now().time()
+    is_night = now < datetime.time(7, 0)
 
-# ⏰ Ish soatini tekshiradi: 07:00–00:00
-def is_active_hours():
-    now = datetime.now().time()
-    return now.hour >= 7 or now.hour == 0
+    if message.chat.type != "supergroup" or message.message_thread_id is None:
+        return
 
-# ✉️ Qiziqarli videolarga yozilgan user text — Generalga forward qilinadi
-@app.on_message(filters.chat(GROUP_ID) & filters.text & ~filters.forwarded)
-async def handle_text(client: Client, message: Message):
-    if is_active_hours() and message.message_thread_id == QIZIQARLI_TOPIC_ID:
-        await message.forward(chat_id=GROUP_ID, message_thread_id=GENERAL_TOPIC_ID)
+    # Forwarded content from other sources
+    if message.forward_from or message.forward_sender_name:
+        if message.media:
+            await message.copy(config.GROUP_ID, message_thread_id=config.QIZIQARLI_TOPIC_ID)
+        elif message.text and ("http" in message.text or "youtu" in message.text or "t.me" in message.text):
+            await message.copy(config.GROUP_ID, message_thread_id=config.QIZIQARLI_TOPIC_ID)
 
-# 🎥 Tashqi forward qilingan media/link — Qiziqarli videolarga yuboriladi
-@app.on_message(filters.chat(GROUP_ID) & filters.forwarded & (filters.video | filters.audio | filters.photo | filters.document | filters.text))
-async def handle_forwarded_media(client: Client, message: Message):
-    if is_active_hours() and message.message_thread_id != QIZIQARLI_TOPIC_ID:
-        await message.forward(chat_id=GROUP_ID, message_thread_id=QIZIQARLI_TOPIC_ID)
+    # User sent message to Qiziqarli topic directly
+    elif message.message_thread_id == config.QIZIQARLI_TOPIC_ID:
+        if is_night:
+            cached_messages.append(message)
+        else:
+            await message.copy(config.GROUP_ID, message_thread_id=0)
 
-# ✅ Pyrogramni to‘g‘ri asyncio bilan ishga tushirish (thread fix)
-def run_bot():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    app.run()
+# Run Flask in background thread
+def run_flask():
+    app.run(host="0.0.0.0", port=10000)
 
-# ✅ Flask serverni ishga tushiramiz
-def run_web():
-    web_app.run(host="0.0.0.0", port=10000)
-
-# ✅ Ikki threadni parallel ishlatamiz
 if __name__ == "__main__":
-    threading.Thread(target=run_bot).start()
-    threading.Thread(target=run_web).start()
-
+    threading.Thread(target=run_flask).start()
+    bot.run()
