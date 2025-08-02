@@ -18,6 +18,7 @@ def is_active_hours():
     now = datetime.now().time()
     return now.hour >= 7 or now.hour == 0
 
+# ✉️ Qiziqarli videolarga yozilgan text — Generalga forward qilinadi
 @app.on_message(
     filters.chat(GROUP_ID) &
     filters.text &
@@ -28,6 +29,7 @@ async def handle_text_in_video_topic(client: Client, message: Message):
     if is_active_hours():
         await message.forward(chat_id=GROUP_ID, message_thread_id=GENERAL_TOPIC_ID)
 
+# 🎥 Forward qilingan media va linklar — Qiziqarli videolarga yuboriladi
 @app.on_message(
     filters.chat(GROUP_ID) &
     filters.forwarded &
@@ -47,4 +49,5 @@ def run_web():
 if __name__ == "__main__":
     threading.Thread(target=run_bot).start()
     threading.Thread(target=run_web).start()
+
 
