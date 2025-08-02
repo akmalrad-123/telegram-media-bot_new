@@ -1,8 +1,12 @@
-from pyrogram import Client, filters
-from pyrogram.types import Message
-from config import API_ID, API_HASH, BOT_TOKEN, GROUP_ID, QIZIQARLI_TOPIC_ID
+from pyrogram import Client
+import config  # api_id, api_hash, bot_token shu faylda
 
-app = Client("media_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+app = Client(
+    name="media_bot",
+    api_id=config.API_ID,
+    api_hash=config.API_HASH,
+    bot_token=config.BOT_TOKEN  # MUHIM!
+)
 
 @app.on_message(filters.group)
 async def route_messages(client: Client, message: Message):
