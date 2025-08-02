@@ -14,53 +14,51 @@ app = Client(
 # --- Xabarni qayta ishlash ---
 @app.on_message(filters.chat(GROUP_ID) & filters.all)
 async def handler(client, message):
-    # 1️⃣ Boshqa manbadan forward qilingan MEDIA → Qiziqarli videolar topikiga
+    # 1️⃣ Forward qilingan MEDIA → Qiziqarli videolar topikiga yuboriladi
     if message.forward_date and (message.video or message.audio or message.photo or message.document):
-    print("📥 Forward qilingan media topildi → qiziqarli videolar ga yuborilyapti.")
-    
-    if message.video:
-        await client.send_video(
-            chat_id=GROUP_ID,
-            video=message.video.file_id,
-            caption=message.caption or "",
-            message_thread_id=QIZIQARLI_TOPIC_ID
-        )
-    elif message.audio:
-        await client.send_audio(
-            chat_id=GROUP_ID,
-            audio=message.audio.file_id,
-            caption=message.caption or "",
-            message_thread_id=QIZIQARLI_TOPIC_ID
-        )
-    elif message.photo:
-        await client.send_photo(
-            chat_id=GROUP_ID,
-            photo=message.photo.file_id,
-            caption=message.caption or "",
-            message_thread_id=QIZIQARLI_TOPIC_ID
-        )
-    elif message.document:
-        await client.send_document(
-            chat_id=GROUP_ID,
-            document=message.document.file_id,
-            caption=message.caption or "",
-            message_thread_id=QIZIQARLI_TOPIC_ID
-        )
-    return
+        print("📥 Forward qilingan media topildi → qiziqarli videolar ga yuborilyapti.")
+        if message.video:
+            await client.send_video(
+                chat_id=GROUP_ID,
+                video=message.video.file_id,
+                caption=message.caption or "",
+                reply_to_message_id=QIZIQARLI_TOPIC_ID
+            )
+        elif message.audio:
+            await client.send_audio(
+                chat_id=GROUP_ID,
+                audio=message.audio.file_id,
+                caption=message.caption or "",
+                reply_to_message_id=QIZIQARLI_TOPIC_ID
+            )
+        elif message.photo:
+            await client.send_photo(
+                chat_id=GROUP_ID,
+                photo=message.photo.file_id,
+                caption=message.caption or "",
+                reply_to_message_id=QIZIQARLI_TOPIC_ID
+            )
+        elif message.document:
+            await client.send_document(
+                chat_id=GROUP_ID,
+                document=message.document.file_id,
+                caption=message.caption or "",
+                reply_to_message_id=QIZIQARLI_TOPIC_ID
+            )
+        return
 
-    # 2️⃣ Guruh a'zosi noto'g'ri Qiziqarli videolar topikiga yozgan bo‘lsa → General ga ko‘chirish
+    # 2️⃣ O'zimizning user noto'g'ri topikka yozsa → General'ga yuboriladi
     if (
         message.from_user is not None and
         message.chat.id == GROUP_ID and
-        message.message_thread_id == QIZIQARLI_TOPIC_ID and
+        message.reply_to_message_id == QIZIQARLI_TOPIC_ID and
         any([message.text, message.audio, message.video])
     ):
         print("↩️ Noto'g'ri topikka yozilgan user xabari → General ga ko'chirilyapti.")
         await client.copy_message(
             chat_id=GROUP_ID,
             from_chat_id=GROUP_ID,
-            message_id=message.id,
-            message_thread_id=None  # General topic
+            message_id=message.id
         )
         return
 
@@ -68,7 +66,7 @@ async def handler(client, message):
     if message.text and message.text.lower().startswith("/start"):
         await message.reply("Salom! Bot ishlayapti.")
 
-# --- Flask server (Render uchun port ochish) ---
+# --- Flask server (Render uchun) ---
 flask_app = Flask(__name__)
 
 @flask_app.route('/')
