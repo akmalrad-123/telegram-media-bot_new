@@ -1,8 +1,10 @@
 services:
-  - type: worker  # ✅ to‘g‘ri
+  - type: web
     name: telegram-media-bot
     env: python
+    plan: free
     repo: https://github.com/akmalrad-123/telegram-media-bot_new
     branch: main
     buildCommand: pip install -r requirements.txt
     startCommand: python main.py
+    autoDeploy: true
