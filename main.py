@@ -44,5 +44,7 @@ def run_bot():
 def run_web():
     web_app.run(host="0.0.0.0", port=10000)
 
-if __name__ == "__main__
+if __name__ == "__main__":
+    threading.Thread(target=run_bot).start()
+    threading.Thread(target=run_web).start()
 
